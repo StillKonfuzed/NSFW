@@ -1,0 +1,209 @@
+                <head>
+                  <title>StillKonfuzed | Image Classifier</title>
+                  <meta charset="utf-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <link href="https://fonts.googleapis.com/css2?family=Alata&display=swap" rel="stylesheet">
+                  <link href = "https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+                  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+                </head>
+                <body>
+                <div class="jumbotron text-center">
+                  
+                  <h1 class="loader">Image Classifier</h1>
+                  <p class="loader-sub">Image classifier built on tensorflow model and implemented with NSFW library  by <a href="https://stillkonfuzed.com">stillKonfuzed</a>.</p> 
+                  <div class="settings"><span class="model-settings"><span class = "material-icons">settings</span>Model Settings</span><br>
+                  <b class="model-toggle using" style="display:none">Using : Lite Model</b>
+                  <p class="model-toggle model-lite">Load Lite Model With 75% Accuracy (2.1MB)(Image Process Time : 5s)</p>
+                  <p class="model-toggle model-full">Load Full Model With 96% Accuracy (26.5MB)(Image ProcessTime : 50s)</p>
+                  </div>
+                  <div class="page-content cropper-page" style="background: rgb(153,0,255);background: linear-gradient(312deg, #90f3 0%, #ff00fe33 49%, #ff000047 100%);display:none">
+                        <img id="resizedImg" src="" style="display:none;width:244"/>
+                        <img id="previewImg" src="" width="auto" style="display:none;max-width: -webkit-fill-available;"/>
+                        <div class="classification-results row" style="">
+                            
+                        </div>
+                        <div class="cropper-holder">
+                            <input id="chooseCropFile" type="file" accept="image/*" AllowMultiple="true" style="display:none"/>
+                            <div class="choose-uploadable" style="text-align: center;">
+                                <img class="new-choose" src="https://static.thenounproject.com/png/187803-200.png" />
+                                <span class="choose-image-title">Choose Image</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    body{
+                        font-family: 'Alata', sans-serif;
+                        -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none;
+                    }
+                    .page-content.cropper-page {
+                        padding: 20px 10px;
+                        border-radius: 15px;
+                    }
+                    .classification-results {
+                        background: #e9ecef;
+                        padding: 15px 10px;
+                        border-radius: 15px;
+                        margin: 10px 15px;
+                    }
+                    p.col-sm-12.reset {
+                        background: #e91e63;
+                        color: #fff;
+                        padding: 7px;
+                        border-radius: 15px;
+                        filter: drop-shadow(1px 2px 2px black);
+                        margin-top: 20px;
+                        cursor: pointer;
+                    }
+                    p.col-sm-6 {
+                        text-align: left;
+                        background: #debdf2;
+                        border-radius: 10px;
+                        padding: 10px 10px;
+                        font-weight: 900;
+                        font-size: large;
+                            opacity: 0.9;
+                    }
+                    p.model-toggle {
+                        background: #e91e63;
+                        padding: 5px 15px;
+                        border-radius: 15px;
+                        margin-top: 10px;
+                        display: none;
+                        color: #fff;
+                        filter: drop-shadow(1px 1px 2px black);
+                    }
+                    div.settings {
+                        background: #eeb4d2;
+                        padding: 10px;
+                        border-radius: 15px;
+                        margin-bottom: 10px;
+                    }
+                    span.material-icons {
+                        position: absolute;
+                        margin-left: -26px;
+                    }
+                    span.choose-image-title {
+                        margin-left: -155px;
+                        color: #fff;
+                        background: #000;
+                        padding: 1px 10px 5px;
+                    }
+                </style>
+                </body>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script> 
+         <script src="nsfwjs.min.js"></script> 
+         <script>
+         if(localStorage.getItem("modelType")){
+             var modelType = localStorage.getItem("modelType");
+         }else{
+             localStorage.setItem("modelType",'lite');
+         }
+         $('#chooseCropFile').on('change', (eventFiles) => {
+              try{
+                $('.choose-uploadable').hide(1000);
+                
+                var oFReaderr = new FileReader(); 
+                var debuggableVar = oFReaderr.readAsDataURL(document.getElementById("chooseCropFile").files[0]);
+                oFReaderr.onload = function(oFREventt) {
+                    $('#resizedImg').attr('src', oFREventt.target.result);
+                    $('#previewImg').attr('src', oFREventt.target.result);
+                    var imgz = document.getElementById('resizedImg');
+                    if(localStorage.getItem("modelType") === 'full'){
+                        var model_url = 'model/';
+                        var size = {size:299};
+                        $('#resizedImg').css('width','299');
+                    }else{
+                        var model_url = 'mobile_model/';
+                        var size = [1,244,244,3];
+                        $('#resizedImg').css('width','244');
+                    }
+                    $('.classification-results').html('');
+                    nsfwjs.load(model_url,size).then(function (model) {
+                      model.classify(imgz).then(function (predictions) {
+                            var counter = 0;
+                            predictions.map((imageType)=>{
+                                counter++;
+                               imageTypeX = String(imageType.probability).substr(2,2);
+                               let myHtml = `<p class="col-sm-6">Prediction ${counter} : ${imageType.className} ~ ${imageTypeX}%</p><hr>`;
+                               $('.classification-results').append(myHtml);
+                            });
+                      }).then(()=>{
+                            $('#previewImg').show(1000);
+                            $('.classification-results').append(`<p class="col-sm-12 reset">Choose Another Image</p>`);
+                      });
+                    });
+                }  
+            }catch(ex){ 
+                  console.log(ex);
+                  $('.choose-uploadable').show(1000);
+            }
+                
+         });
+         
+         $('.choose-uploadable').on('click',function(){
+             $('#chooseCropFile').click();
+             tf.enableProdMode();
+         });
+         $(document).ready(()=>{
+             $('.loader').text("Loading Tensorflow Model...");
+             var catche = $('.loader-sub').html();
+             if(localStorage.getItem("modelType") === 'full'){
+                    var model_url = 'model/';
+                    var size = {size:299};
+                    $('#resizedImg').css('width','299');
+                    $('.using').text("Using : Full Model");
+                    var modelType = 'FULL';
+                    var mb = '26.5MB';
+            }else{
+                    var model_url = 'mobile_model/';
+                    var size = [1,244,244,3];
+                    $('#resizedImg').css('width','244');
+                    $('.using').text("Using : Lite Model");
+                    var modelType = 'LITE';
+                    var mb = '2.1MB';
+            }
+            if(localStorage.getItem("newVisit")){
+                 $('.loader-sub').html("Please wait <b class='timer'>15</b>s for the prediction model to load...");
+            }else{
+                 $('.loader-sub').html(`Please wait... Downloading <b>${modelType}</b> trained module of ${mb}...`);
+                 localStorage.setItem("newVisit",'yes');
+            }
+            console.log(size,model_url);
+             nsfwjs.load(model_url,size).then(()=>{
+                 $('.loader').text("Image Classifier");
+                 $('.cropper-page').show(1000);
+                 clearInterval(timerInterval);
+                 $('.loader-sub').html(catche);
+             });
+             var seconds = 15;
+             var timerInterval = setInterval(()=>{
+                 seconds--;
+                 $('.timer').text(`${seconds}`);
+             },1000);
+         });
+         $(document).delegate('.reset','click',()=>{
+             console.log('reset');
+             $('.choose-uploadable').show(1000);
+             $('#previewImg').hide(1000);
+             $('#resizedImg').attr('src', '');
+             $('.classification-results').html('');
+         });
+         $('.model-settings').on('click',()=>{
+             $('.model-toggle').toggle(1000);
+         });
+         $('.model-lite').on('click',function(){
+             localStorage.setItem("modelType",'lite');
+             localStorage.removeItem("newVisit");
+             window.location.reload();
+         });
+         $('.model-full').on('click',function(){
+             localStorage.setItem("modelType",'full');
+             localStorage.removeItem("newVisit");
+             window.location.reload();
+         });
+         </script>
